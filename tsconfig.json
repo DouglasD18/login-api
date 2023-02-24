@@ -12,5 +12,7 @@
       "@/*": ["*"]
     },
     "resolveJsonModule": true
-  }
+  },
+  "include": ["src", "tests"],
+  "exclude": []
 }
