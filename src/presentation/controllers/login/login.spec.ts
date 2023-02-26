@@ -1,7 +1,8 @@
 import { LoginController } from "./login";
-import { badRequest } from '../../helpers/http';
+import { badRequest, serverError } from '../../helpers/http';
 import { InvalidParamError, MissingParamError } from "../../errors";
 import { EmailValidator } from '../../protocols/email-validator';
+import { HttpRequest } from '../../protocols/http';
 
 const makeEmailValidatorStub = (): EmailValidator => {
   class EmailValidatorStub implements EmailValidator {
@@ -12,6 +13,13 @@ const makeEmailValidatorStub = (): EmailValidator => {
 
   return new EmailValidatorStub();
 }
+
+const makeFakeRequest = (): HttpRequest => ({
+  body: {
+    email: "valid@mail.com",
+    password: "valid_password"
+  }
+})
 
 interface SutTypes {
   sut: LoginController
@@ -57,31 +65,30 @@ describe("Login Controller", () => {
 
   it("Should call EmailValidator with correct email", async () => {
     const { sut, emailValidatorStub } = makeSut();
-    const httpRequest = {
-      body: {
-        email: "valid@mail.com",
-        password: "valid_password"
-      }
-    }
 
     const isValidSpy = jest.spyOn(emailValidatorStub, "isValid");
-    await sut.handle(httpRequest);
+    await sut.handle(makeFakeRequest());
 
-    expect(isValidSpy).toHaveBeenCalledWith(httpRequest.body.email);
+    expect(isValidSpy).toHaveBeenCalledWith("valid@mail.com");
   })
 
   it("Should return 400 if an invalid email is provided", async () => {
     const { sut, emailValidatorStub } = makeSut();
-    const httpRequest = {
-      body: {
-        email: "valid@mail.com",
-        password: "valid_password"
-      }
-    }
 
     jest.spyOn(emailValidatorStub, "isValid").mockReturnValueOnce(false);
-    const httpResponse = await sut.handle(httpRequest);
+    const httpResponse = await sut.handle(makeFakeRequest());
 
     expect(httpResponse).toEqual(badRequest(new InvalidParamError("email")));
+  })
+
+  it("Should return 500 if EmailValidator throws", async () => {
+    const { sut, emailValidatorStub } = makeSut();
+
+    jest.spyOn(emailValidatorStub, "isValid").mockImplementationOnce(() => {
+      throw new Error();
+    });
+    const httpResponse = await sut.handle(makeFakeRequest());
+
+    expect(httpResponse).toEqual(serverError(new Error()));
   })
 })
