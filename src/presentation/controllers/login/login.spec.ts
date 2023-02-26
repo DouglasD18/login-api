@@ -1,5 +1,5 @@
 import { LoginController } from "./login";
-import { Authentication, EmailValidator, HttpRequest, InvalidParamError, MissingParamError, badRequest, serverError, unauthorized } from "./login-protocols";
+import { Authentication, EmailValidator, HttpRequest, InvalidParamError, MissingParamError, badRequest, ok, serverError, unauthorized } from "./login-protocols";
 
 const makeEmailValidatorStub = (): EmailValidator => {
   class EmailValidatorStub implements EmailValidator {
@@ -127,5 +127,15 @@ describe("Login Controller", () => {
     const httpResponse = await sut.handle(makeFakeRequest());
 
     expect(httpResponse).toEqual(serverError(new Error()));
+  })
+
+  it("Should return 500 if Authentication throws", async () => {
+    const { sut } = makeSut();
+
+    const httpResponse = await sut.handle(makeFakeRequest());
+
+    expect(httpResponse).toEqual(ok({
+      accessToken: "any_token"
+    }));
   })
 })
